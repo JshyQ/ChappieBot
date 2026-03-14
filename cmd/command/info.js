@@ -5,7 +5,7 @@ import { execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import os from 'os'
 
-const BANNER_URL   = 'https://images8.alphacoders.com/584/thumb-1920-584430.jpg'
+const BANNER_URL   = 'https://c.termai.cc/i117/emGnh.jpg'
 const CHANNEL_JID  = '0029VbCWrvqJpe8nXG7Y0S0v@newsletter'
 const CHANNEL_NAME = 'ChappieBot'
 
