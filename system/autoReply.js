@@ -1,3 +1,10 @@
+/**
+ * autoReply.js
+ * Responds ONLY when someone explicitly @mentions or replies to the bot.
+ * Never triggers on the bot's own messages.
+ * Uses OpenAI Chat Completions with the bot's personality from config.json.
+ */
+
 import fetch from 'node-fetch'
 import c from 'chalk'
 import fs from 'fs'
@@ -104,35 +111,46 @@ PENTING — Kamu bisa memicu aksi khusus dengan membalas HANYA dalam format JSON
   try {
     const parsed = JSON.parse(reply)
     if (parsed?.cmd) return { cmd: parsed.cmd.toLowerCase(), msg: parsed.msg || '' }
-  } catch {  }
+  } catch { /* normal text reply */ }
 
   return { cmd: null, msg: reply }
 }
 
 export async function autoReply(m, xp, ev) {
   try {
-    /
+    // ── GUARD 1: fromMe flag ───────────────────────────────────────────────
     if (m.key?.fromMe) return
 
-    const chat  = global.chat(m),
-          idBot = xp.user?.id?.split(':')[0] + '@s.whatsapp.net'
+    // ── GUARD 2: Compare phone numbers directly ────────────────────────────
+    // Most reliable self-check — strips JID suffix and resource
+    const botNum    = xp.user?.id?.split(':')[0]?.split('@')[0]
+    const remoteJid = m.key?.remoteJid || ''
+    const senderJid = m.key?.participant || remoteJid
+    const senderNum = senderJid.split('@')[0].split(':')[0]
 
-   
-    if (!chat.sender) return
-    if (chat.sender === idBot) return
-    if (chat.sender.split('@')[0] === idBot.split('@')[0]) return
+    if (!botNum || !senderNum) return
+    if (senderNum === botNum) return
+
+    // ── GUARD 3: Also block messages FROM the bot's own chat ──────────────
+    // In private chats remoteJid IS the other person, but double-check
+    const remoteNum = remoteJid.split('@')[0].split(':')[0]
+    if (remoteNum === botNum) return
+
+    const chat = global.chat(m),
+          idBot = botNum + '@s.whatsapp.net'
 
     const ctx = m.message?.extendedTextMessage?.contextInfo
              || m.message?.imageMessage?.contextInfo
              || {}
 
-    
+    // ── TRIGGER: ONLY explicit @mention or reply-to-bot ───────────────────
+    // Intentionally NO name-mention trigger — too easy to false-positive
     const isMentioned    = Array.isArray(ctx?.mentionedJid) && ctx.mentionedJid.includes(idBot)
     const isRepliedToBot = ctx?.participant === idBot || ctx?.remoteJid === idBot
 
     if (!isMentioned && !isRepliedToBot) return
 
-  
+    // ── GUARD 4: Skip command prefixes ────────────────────────────────────
     const text   = m.message?.conversation
                 || m.message?.extendedTextMessage?.text
                 || ''
@@ -142,7 +160,7 @@ export async function autoReply(m, xp, ev) {
     const prefix = [].concat(global.prefix)
     if (prefix.some(p => txtRaw.startsWith(p))) return
 
-   
+    // ── COOLDOWN ──────────────────────────────────────────────────────────
     const now = Date.now(), last = cooldown.get(chat.sender) || 0
     if (now - last < COOLDOWN_MS) return
     cooldown.set(chat.sender, now)
