@@ -67,6 +67,9 @@ const startBot = async () => {
       for (let m of messages) {
         if (m?.message?.messageContextInfo?.deviceListMetadata && !Object.keys(m.message).some(k => k === 'conversation' || k === 'extendedTextMessage')) continue
 
+        // ── Capture fromMe BEFORE cleanMsg/replaceLid can strip it ──────────
+        const isFromMe = !!(m.key?.fromMe)
+
         m = cleanMsg(m)
         m = replaceLid(m)
 
@@ -127,9 +130,11 @@ const startBot = async () => {
           if (gcData.filter?.mute && !usrAdm) return !1
         }
 
-        if (text) await signal(text, m, xp, ev)
-
-        await autoReply(m, xp, ev)
+        // ── Only run AI handlers for messages from OTHER people ─────────────
+        if (!isFromMe) {
+          if (text) await signal(text, m, xp, ev)
+          await autoReply(m, xp, ev)
+        }
 
         await handleCmd(m, xp, store)
       }
