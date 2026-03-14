@@ -8,6 +8,7 @@ import { makeWASocket, useMultiFileAuthState } from 'baileys'
 import { handleCmd, ev } from './cmd/handle.js'
 import { signal } from './cmd/interactive.js'
 import { evConnect, handleSessionIssue } from './connect/evConnect.js'
+import { autoReply } from './system/autoReply.js'
 import { autofarm } from './system/gamefunc.js'
 import getMessageContent from './system/msg.js'
 import { init, authFarm } from './system/db/data.js'
@@ -127,6 +128,8 @@ const startBot = async () => {
         }
 
         if (text) await signal(text, m, xp, ev)
+
+        await autoReply(m, xp, ev)
 
         await handleCmd(m, xp, store)
       }
