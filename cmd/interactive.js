@@ -58,33 +58,23 @@ async function bell(txt, m, xp, voice = "dabi", pitch = 0, speed = 0.9) {
             },
             {
               description: 'Jika pesan adalah permintaan untuk menampilkan menu (maka jawab lah dengan mengatakan ini menu nya!)',
-              output: { 
-                cmd: 'menu'
-              }
+              output: { cmd: 'menu' }
             },
             {
               description: 'Jika pesan adalah perintah untuk membuka/menutup group',
-              output: {
-                cmd: ['opengroup', 'closegroup']
-              }
+              output: { cmd: ['opengroup', 'closegroup'] }
             },
             {
               description: 'Jika pesan adalah permintaan untuk membuat stiker atau mengubah sebuah gambar menjadi stiker. (Abaikan isi konten pada gambar!)',
-              output: {
-                cmd: 'stiker'
-              }
+              output: { cmd: 'stiker' }
             },
             {
               description: 'Jika pesan adalah permintaan untuk membuat stiker to image atau mengubah sebuah sticker menjadi gambar. (Abaikan isi konten pada sticker!)',
-              output: {
-                cmd: 'toimg'
-              }
+              output: { cmd: 'toimg' }
             },
             {
               description: 'Jika pesan adalah permintaan untuk mengecek api, maka respon dengan cmd: cekkey!',
-              output: {
-                cmd: 'cekkey'
-              }
+              output: { cmd: 'cekkey' }
             },
             {
               description: 'Jika pesan adalah permintaan untuk mengedit image atau gambar, maka respon dengan cmd: i2i dan hanya untuk cmd ini msg: permintaan dari pengguna.',
@@ -95,10 +85,7 @@ async function bell(txt, m, xp, voice = "dabi", pitch = 0, speed = 0.9) {
             },
             {
               description: 'Jika pesan adalah permintaan untuk memasuki atau bergabung dengan grup, maka respon dengan isi msg dengan link yang di kirim oleh user',
-              output: {
-                cmd: 'join',
-                msg: 'Pesan di sini sertakan link grup yang di kirim oleh user dalam respon kamu!'
-              }
+              output: { cmd: 'join', msg: 'Pesan di sini sertakan link grup yang di kirim oleh user dalam respon kamu!' }
             },
             {
               description: 'Jika pesan adalah permintaan untuk mencari lagu, maka isi msg: judul lagu yang di minta. Hanya judul nya saja, dan cmd selalu play',
@@ -147,19 +134,25 @@ async function bell(txt, m, xp, voice = "dabi", pitch = 0, speed = 0.9) {
 }
 
 const signal = async (text, m, xp, ev) => {
-  const idBot = xp.user?.id?.split(':')[0] + '@s.whatsapp.net',
-        chat = global.chat(m),
-        botName = global.botName?.toLowerCase(),
-        ctx = m.message?.extendedTextMessage?.contextInfo || m.message?.imageMessage?.contextInfo || {},
-        txt = text?.toLowerCase(),
-        call =
-          ctx?.mentionedJid?.includes(idBot) ||
-          chat.sender === idBot ||
-          ctx?.participant === idBot ||
-          (!!botName && txt.includes(botName)),
-        prefix = [].concat(global.prefix).some(p => txt.startsWith(p))
+  // ── Never process the bot's own messages ──────────────────────────────
+  if (m.key?.fromMe) return
 
-  if (!call || prefix || chat.sender?.split(':')[0] === idBot?.split('@')[0]) return
+  const idBot  = xp.user?.id?.split(':')[0] + '@s.whatsapp.net',
+        botNum = xp.user?.id?.split(':')[0]?.split('@')[0],
+        senderNum = (m.key?.participant || m.key?.remoteJid || '').split('@')[0].split(':')[0]
+
+  // Phone number self-check (more reliable than fromMe in some Baileys builds)
+  if (botNum && senderNum === botNum) return
+
+  const chat    = global.chat(m),
+        ctx     = m.message?.extendedTextMessage?.contextInfo || m.message?.imageMessage?.contextInfo || {},
+        txt     = text?.toLowerCase(),
+        // Removed name-mention trigger — causes self-reply loop
+        // Only fire on explicit @mention or reply-to-bot
+        call    = ctx?.mentionedJid?.includes(idBot) || ctx?.participant === idBot,
+        prefix  = [].concat(global.prefix).some(p => txt.startsWith(p))
+
+  if (!call || prefix) return
 
   const keyData = Object.values(db().key).find(u => u.jid === chat.sender),
         exp = Math.round(0.1 * 10)
@@ -176,63 +169,15 @@ const signal = async (text, m, xp, ev) => {
 
   const cmd = _ai.cmd?.toLowerCase(),
         cmds = [
-          {
-            cmd: ['opengroup'],
-            q: 'open',
-            event: 'open',
-            res: !0
-          },
-          {
-            cmd: ['closegroup'],
-            q: 'close',
-            event: 'close',
-            res: !0
-          },
-          {
-            cmd: ['menu'],
-            q: 'menu',
-            event: 'menu',
-            res: !1
-          },
-          {
-            cmd: ['stiker', 'sticker'],
-            q: 'stiker',
-            event: 'stiker',
-            res: !0
-          },
-          {
-            cmd: ['toimg'],
-            q: 'toimg',
-            event: 'toimg',
-            res: !0
-          },
-          {
-            cmd: ['cekkey'],
-            q: 'cekkey',
-            event: 'cekkey',
-            res: !0
-          },
-          {
-            cmd: ['i2i'],
-            q: 'i2i',
-            event: 'i2i',
-            res: !1,
-            prompt: !0
-          },
-          {
-            cmd: ['join'],
-            q: 'join',
-            event: 'join',
-            res: !1,
-            prompt: !0
-          },
-          {
-            cmd: ['play', 'putar', 'cari', 'cariin'],
-            q: 'play',
-            event: 'play',
-            res: !0,
-            prompt: !0
-          }
+          { cmd: ['opengroup'],              q: 'open',   event: 'open',   res: !0 },
+          { cmd: ['closegroup'],             q: 'close',  event: 'close',  res: !0 },
+          { cmd: ['menu'],                   q: 'menu',   event: 'menu',   res: !1 },
+          { cmd: ['stiker', 'sticker'],      q: 'stiker', event: 'stiker', res: !0 },
+          { cmd: ['toimg'],                  q: 'toimg',  event: 'toimg',  res: !0 },
+          { cmd: ['cekkey'],                 q: 'cekkey', event: 'cekkey', res: !0 },
+          { cmd: ['i2i'],                    q: 'i2i',    event: 'i2i',    res: !1, prompt: !0 },
+          { cmd: ['join'],                   q: 'join',   event: 'join',   res: !1, prompt: !0 },
+          { cmd: ['play', 'putar', 'cari', 'cariin'], q: 'play', event: 'play', res: !0, prompt: !0 }
         ],
         ify = cmds.find(r => r.cmd.includes(cmd))
 
