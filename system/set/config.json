@@ -22,10 +22,10 @@
         "foot": "┗─"
       },
       "idCh": "",
-      "thumbnail": "https://images8.alphacoders.com/584/thumb-1920-584430.jpg",
+      "thumbnail": "https://c.termai.cc/i126/XHtRk.jp",
       "line": "───────────────··",
       "btn": "•",
-      "footer": "Hello Friends.",
+      "footer": "Chappie",
       "brackets": [
         "❲",
         "❳"
@@ -38,6 +38,9 @@
     "termai": {
       "key": "Bell409",
       "web": "https://api.termai.cc"
+    },
+    "openai": {
+      "key": "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"
     }
   }
 }
